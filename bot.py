@@ -1,7 +1,7 @@
 from flask import Flask
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, CallbackContext
-import threading
+import asyncio
 
 # আপনার টেলিগ্রাম বটের API টোকেন
 TOKEN = "7059109518:AAGtP3w5i6qoyThsxnPeSbDD5rIV2ybiPHw"
@@ -37,7 +37,7 @@ async def handle_message(update: Update, context: CallbackContext):
         await update.message.reply_text("⚡ দুঃখিত, আমি বুঝতে পারিনি। /help লিখে সহায়তা নিন।")
 
 # টেলিগ্রাম বট চালানোর ফাংশন
-def run_telegram_bot():
+async def run_telegram_bot():
     app_bot = Application.builder().token(TOKEN).build()
 
     app_bot.add_handler(CommandHandler("start", start))
@@ -46,12 +46,24 @@ def run_telegram_bot():
     app_bot.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
     print("✅ টেলিগ্রাম বট চালু হয়েছে...")
-    app_bot.run_polling()
+    await app_bot.run_polling()
 
-# ব্যাকগ্রাউন্ডে টেলিগ্রাম বট চালানো
-threading.Thread(target=run_telegram_bot, daemon=True).start()
-
-# Flask অ্যাপ চালানো
-if __name__ == "__main__":
-    print("🚀 Flask সার্ভার চালু হয়েছে...")
+# Flask অ্যাপ চালানোর জন্য অ্যাসিঙ্ক্রোনাস ফাংশন
+async def start_flask():
+    # Flask অ্যাপটি আলাদাভাবে চালু করা হচ্ছে
     app.run(host="0.0.0.0", port=8080, debug=True)
+
+# মূল ফাংশন যেখানে Flask এবং Telegram Bot একসাথে চালানো হবে
+def main():
+    # একটি নতুন ইভেন্ট লুপ তৈরি এবং সব অ্যাসিঙ্ক্রোনাস ফাংশন চালানো
+    loop = asyncio.get_event_loop()
+    
+    # Flask এবং Telegram Bot একসাথে চালানো
+    loop.create_task(run_telegram_bot())
+    loop.create_task(start_flask())
+
+    # ইভেন্ট লুপ চালু করা
+    loop.run_forever()
+
+if __name__ == "__main__":
+    main()
